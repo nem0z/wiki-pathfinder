@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/nem0z/wiki-pathfinder/crawler"
 	"github.com/nem0z/wiki-pathfinder/storage"
@@ -18,7 +19,10 @@ func main() {
 	args := os.Args
 	nbCrawlers := 500
 	if len(args) > 1 {
-		nbCrawlers = args[1]
+		n, err := strconv.Atoi(args[1])
+		if err != nil {
+			nbCrawlers = n
+		}
 	}
 
 	db, err := storage.Init("local.db")
@@ -31,6 +35,7 @@ func main() {
 		crawler := crawler.New(queue, ch)
 		go crawler.Work()
 	}
+	log.Printf("Started %v crawlers", nbCrawlers)
 
 	for {
 		select {
