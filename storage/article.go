@@ -15,8 +15,8 @@ func NewArticle(link string, title string) *Article {
 	return &Article{Id: 0, Link: link, Title: title}
 }
 
-func (db *DB) GetArticle(article *Article) (id int64, err error) {
-	err = db.QueryRow("SELECT id FROM articles WHERE link = ?", article.Link).Scan(&id)
+func (tx *Tx) GetArticle(article *Article) (id int64, err error) {
+	err = tx.QueryRow("SELECT id FROM articles WHERE link = ?", article.Link).Scan(&id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -27,9 +27,9 @@ func (db *DB) GetArticle(article *Article) (id int64, err error) {
 	return id, nil
 }
 
-func (db *DB) CreateArticle(article *Article) (int64, error) {
+func (tx *Tx) CreateArticle(article *Article) (int64, error) {
 	req := "INSERT INTO articles (link, title, processed) VALUES (?, ?, ?)"
-	res, err := db.Exec(req, article.Link, article.Title, false)
+	res, err := tx.Exec(req, article.Link, article.Title, false)
 	if err != nil {
 		return 0, err
 	}
@@ -37,8 +37,8 @@ func (db *DB) CreateArticle(article *Article) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (db *DB) GetOrCreateArticle(article *Article) (int64, error) {
-	id, err := db.GetArticle(article)
+func (tx *Tx) GetOrCreateArticle(article *Article) (int64, error) {
+	id, err := tx.GetArticle(article)
 	if err != nil {
 		return 0, err
 	}
@@ -47,11 +47,11 @@ func (db *DB) GetOrCreateArticle(article *Article) (int64, error) {
 		return id, nil
 	}
 
-	return db.CreateArticle(article)
+	return tx.CreateArticle(article)
 }
 
-func (db *DB) SetArticleProcessed(id int64) error {
-	_, err := db.Exec("UPDATE articles SET processed = 1 WHERE id = ?", id)
+func (tx *Tx) SetArticleProcessed(id int64) error {
+	_, err := tx.Exec("UPDATE articles SET processed = 1 WHERE id = ?", id)
 	return err
 }
 

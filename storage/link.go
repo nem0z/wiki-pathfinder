@@ -6,8 +6,8 @@ import (
 	"log"
 )
 
-func (db *DB) GetLink(parentId int64, childId int64) (id int64, err error) {
-	err = db.QueryRow("SELECT id FROM links WHERE parent = ? AND child = ?", parentId, childId).Scan(&id)
+func (tx *Tx) GetLink(parentId int64, childId int64) (id int64, err error) {
+	err = tx.QueryRow("SELECT id FROM links WHERE parent = ? AND child = ?", parentId, childId).Scan(&id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, nil
@@ -18,9 +18,9 @@ func (db *DB) GetLink(parentId int64, childId int64) (id int64, err error) {
 	return id, nil
 }
 
-func (db *DB) CreateLink(parentId int64, childId int64) (int64, error) {
+func (tx *Tx) CreateLink(parentId int64, childId int64) (int64, error) {
 	req := "INSERT INTO links (parent, child) VALUES (?, ?)"
-	res, err := db.Exec(req, parentId, childId)
+	res, err := tx.Exec(req, parentId, childId)
 	if err != nil {
 		return 0, err
 	}
@@ -28,8 +28,8 @@ func (db *DB) CreateLink(parentId int64, childId int64) (int64, error) {
 	return res.LastInsertId()
 }
 
-func (db *DB) GetOrCreateLink(parentId int64, childId int64) (int64, error) {
-	id, err := db.GetLink(parentId, childId)
+func (tx *Tx) GetOrCreateLink(parentId int64, childId int64) (int64, error) {
+	id, err := tx.GetLink(parentId, childId)
 	if err != nil {
 		return 0, err
 	}
@@ -38,22 +38,37 @@ func (db *DB) GetOrCreateLink(parentId int64, childId int64) (int64, error) {
 		return id, nil
 	}
 
-	return db.CreateLink(parentId, childId)
+	return tx.CreateLink(parentId, childId)
 }
 
-func (db *DB) CreateLinks(parentId int64, childs ...*Article) {
-	defer db.SetArticleProcessed(parentId)
-
+func (tx *Tx) CreateLinks(parentId int64, childs ...*Article) {
 	for _, article := range childs {
-		id, err := db.GetOrCreateArticle(article)
+		id, err := tx.GetOrCreateArticle(article)
 		if err != nil {
 			log.Printf("CreateLinks => GetOrCreateArticle (%v) : %v\n", article.Link, err)
 			continue
 		}
 
-		_, err = db.GetOrCreateLink(parentId, id)
+		_, err = tx.GetOrCreateLink(parentId, id)
 		if err != nil {
 			log.Printf("CreateLinks => GetOrCreateLink (%v) : %v\n", id, err)
 		}
 	}
+}
+
+func (db *DB) CreateLinks(parentId int64, childs ...*Article) {
+	tx, err := db.BeginTx()
+	if err != nil {
+		return
+	}
+
+	defer func() {
+		err = tx.Commit()
+		if err != nil {
+			err = tx.SetArticleProcessed(parentId)
+			if err != nil {
+				log.Printf("CreateLinks => GetOrCreateArticle (%v) : %v\n", parentId, err)
+			}
+		}
+	}()
 }
