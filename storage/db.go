@@ -6,10 +6,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-type DB struct {
-	*sql.DB
-}
-
 const (
 	createTableArticles = `
 		CREATE TABLE IF NOT EXISTS articles (
@@ -38,6 +34,14 @@ const (
 	`
 )
 
+type DB struct {
+	*sql.DB
+}
+
+type Tx struct {
+	*sql.Tx
+}
+
 func Init(path string) (*DB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
@@ -50,7 +54,19 @@ func Init(path string) (*DB, error) {
 	}
 
 	_, err = db.Exec(createTableLinks)
+	if err != nil {
+		return nil, err
+	}
 
 	_, err = db.Exec(insertOriginArticle)
-	return &DB{db}, nil
+	return &DB{db}, err
+}
+
+func (db *DB) BeginTx() (*Tx, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Tx{tx}, nil
 }
