@@ -59,16 +59,22 @@ func (tx *Tx) CreateLinks(parentId int64, childs ...*Article) {
 func (db *DB) CreateLinks(parentId int64, childs ...*Article) {
 	tx, err := db.BeginTx()
 	if err != nil {
+		log.Printf("CreateLinks => BeginTx (%v) : %v\n", parentId, err)
 		return
 	}
+
+	tx.CreateLinks(parentId, childs...)
 
 	defer func() {
 		err = tx.Commit()
 		if err != nil {
-			err = tx.SetArticleProcessed(parentId)
-			if err != nil {
-				log.Printf("CreateLinks => GetOrCreateArticle (%v) : %v\n", parentId, err)
-			}
+			log.Printf("CreateLinks => Commit (%v) : %v\n", parentId, err)
+			return
+		}
+
+		err = db.SetArticleProcessed(parentId)
+		if err != nil {
+			log.Printf("CreateLinks => GetOrCreateArticle (%v) : %v\n", parentId, err)
 		}
 	}()
 }

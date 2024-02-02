@@ -50,6 +50,11 @@ func (tx *Tx) GetOrCreateArticle(article *Article) (int64, error) {
 	return tx.CreateArticle(article)
 }
 
+func (db *DB) SetArticleProcessed(id int64) error {
+	_, err := db.Exec("UPDATE articles SET processed = 1 WHERE id = ?", id)
+	return err
+}
+
 func (tx *Tx) SetArticleProcessed(id int64) error {
 	_, err := tx.Exec("UPDATE articles SET processed = 1 WHERE id = ?", id)
 	return err

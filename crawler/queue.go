@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	minQueueElements = 500
-	maxQueueElements = 5000
+	MinQueueElements = 100
+	MaxQueueElements = 10000
 )
 
 type Queue struct {
@@ -21,12 +21,20 @@ type Queue struct {
 	db  *storage.DB
 }
 
+func (q *Queue) SetMin(value int) {
+	q.min = value
+}
+
+func (q *Queue) SetMax(value int) {
+	q.max = value
+}
+
 func InitQueue(db *storage.DB) *Queue {
 	q := &Queue{
 		arr: []*storage.Article{},
 		mu:  sync.Mutex{},
-		min: minQueueElements,
-		max: maxQueueElements,
+		min: MinQueueElements,
+		max: MaxQueueElements,
 		db:  db,
 	}
 
