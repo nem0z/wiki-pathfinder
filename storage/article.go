@@ -55,6 +55,11 @@ func (tx *Tx) SetArticleProcessed(id int64) error {
 	return err
 }
 
+func (db *DB) SetArticleProcessed(id int64) error {
+	_, err := db.Exec("UPDATE articles SET processed = 1 WHERE id = ?", id)
+	return err
+}
+
 func loadArticle(rows *sql.Rows) (*Article, error) {
 	article := &Article{}
 	err := rows.Scan(&article.Id, &article.Title, &article.Link)
