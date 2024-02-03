@@ -23,3 +23,6 @@ go.work
 # Database
 *.db
 *.db-journal
+
+# Sharding
+shards/**

@@ -2,6 +2,8 @@ package storage
 
 import (
 	"database/sql"
+	"os"
+	"path/filepath"
 
 	_ "modernc.org/sqlite"
 )
@@ -42,24 +44,39 @@ type Tx struct {
 	*sql.Tx
 }
 
-func Init(path string) (*DB, error) {
-	db, err := sql.Open("sqlite", path)
-	if err != nil {
-		return nil, err
-	}
+func createPathIfNotExist(path string) error {
+	dir := filepath.Dir(path)
+	return os.MkdirAll(dir, os.ModePerm)
+}
 
-	_, err = db.Exec(createTableArticles)
+func (db *DB) Init() error {
+	_, err := db.Exec(createTableArticles)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = db.Exec(createTableLinks)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = db.Exec(insertOriginArticle)
-	return &DB{db}, err
+	return err
+}
+
+func Init(path string) (*DB, error) {
+	err := createPathIfNotExist(path)
+	if err != nil {
+		return nil, err
+	}
+
+	sqliteDB, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, err
+	}
+
+	db := &DB{sqliteDB}
+	return db, db.Init()
 }
 
 func (db *DB) BeginTx() (*Tx, error) {
