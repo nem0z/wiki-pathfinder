@@ -2,14 +2,17 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 )
 
 const (
 	createTableArticles = `
 		CREATE TABLE IF NOT EXISTS articles (
-			id INTEGER PRIMARY KEY,
+			id INTEGER AUTO_INCREMENT PRIMARY KEY,
 			title VARCHAR(255),
 			link VARCHAR(255) UNIQUE,
 			processed bool
@@ -18,7 +21,7 @@ const (
 
 	createTableLinks = `
 		CREATE TABLE IF NOT EXISTS links (
-			id INTEGER PRIMARY KEY,
+			id INTEGER AUTO_INCREMENT PRIMARY KEY,
 			parent INTEGER,
 			child INTEGER,
 			UNIQUE (parent, child),
@@ -28,7 +31,7 @@ const (
 	`
 
 	insertOriginArticle = `
-		INSERT INTO articles ("title", "link", "processed")
+		INSERT INTO articles (title, link, processed)
 		SELECT 'Strasbourg', '/wiki/Strasbourg', '0'
 		WHERE NOT EXISTS (SELECT 1 FROM articles LIMIT 1);
 	`
@@ -43,10 +46,41 @@ type Tx struct {
 }
 
 func Init(path string) (*DB, error) {
-	db, err := sql.Open("sqlite", path)
+	err := godotenv.Load()
 	if err != nil {
 		return nil, err
 	}
+
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	name := os.Getenv("DB_NAME")
+
+	// Format MySQL DSN
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%v", user, password, host, port, name)
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if the connection to the database is successful
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+
+	// Create the database if it doesn't exist
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS " + name)
+	if err != nil {
+		return nil, err
+	}
+
+	// Switch to the specified database
+	// _, err = db.Exec("USE " + name)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	_, err = db.Exec(createTableArticles)
 	if err != nil {
