@@ -1,7 +1,7 @@
 package crawler
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/nem0z/wiki-pathfinder/storage"
@@ -13,13 +13,12 @@ type CrawlerResp struct {
 }
 
 type Crawler struct {
-	queue   *Queue
-	scraper *Scraper
-	ch      chan *CrawlerResp
+	queue *Queue
+	ch    chan *CrawlerResp
 }
 
 func New(queue *Queue, ch chan *CrawlerResp) *Crawler {
-	return &Crawler{queue, NewScraper(), ch}
+	return &Crawler{queue, ch}
 }
 
 func (c *Crawler) Work() {
@@ -30,11 +29,11 @@ func (c *Crawler) Work() {
 			continue
 		}
 
-		fmt.Println("Item to process :", item.Title)
-
-		articles, err := c.scraper.GetArticles(item.Link)
+		log.Println("Item to process :", item.Title)
+		scraper := NewScraper()
+		articles, err := scraper.GetArticles(item.Link)
 		if err != nil {
-			fmt.Println("crawler.GetArticles :", err)
+			log.Println("crawler.GetArticles :", err)
 		} else {
 			c.ch <- &CrawlerResp{item.Id, articles}
 		}
