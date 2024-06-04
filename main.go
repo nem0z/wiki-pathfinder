@@ -20,7 +20,7 @@ func main() {
 	queue := crawler.InitQueue(db)
 	ch := make(chan *crawler.CrawlerResp)
 
-	for i := 0; i < 250; i++ {
+	for i := 0; i < 10; i++ {
 		crawler := crawler.New(queue, ch)
 		go crawler.Work()
 	}

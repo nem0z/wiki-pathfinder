@@ -72,7 +72,7 @@ func (db *DB) CreateLinks(parentId int64, childs ...*Article) {
 			return
 		}
 
-		err = tx.SetArticleProcessed(parentId)
+		err = db.SetArticleProcessed(parentId)
 		if err != nil {
 			log.Printf("CreateLinks => SetArticleProcessed (%v) : %v\n", parentId, err)
 		}
